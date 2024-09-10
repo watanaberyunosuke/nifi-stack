@@ -1,0 +1,9 @@
+<loginIdentityProviders>
+    <provider>
+        <identifier>single-user-provider</identifier>
+        <class>org.apache.nifi.authentication.single.user.SingleUserLoginIdentityProvider</class>
+        <property name="Username">admin</property>
+        <property name="Password">admin</property>
+        <property name="Initial Admin Identity">admin</property>
+    </provider>
+</loginIdentityProviders>

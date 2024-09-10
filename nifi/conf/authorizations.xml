@@ -1,0 +1,12 @@
+<accessPolicyProvider>
+  <accessPolicies>
+    <policy identifier="policy-1">
+      <resource>/</resource>
+      <action>READ</action>
+      <action>WRITE</action>
+      <users>
+        <user>admin</user>
+      </users>
+    </policy>
+  </accessPolicies>
+</accessPolicyProvider>

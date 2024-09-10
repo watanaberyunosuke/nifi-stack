@@ -1,0 +1,9 @@
+<userGroupProvider>
+  <users>
+    <user>
+      <identifier>admin</identifier>
+      <identity>admin</identity>
+      <groups/>
+    </user>
+  </users>
+</userGroupProvider>

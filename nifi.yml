@@ -1,0 +1,182 @@
+version: "3.9"
+services:
+
+    # Airflow webserver service
+    airflow-webserver:
+        hostname: nifi-airflow
+        container_name: nifi-airflow
+        image: 'apache/airflow:2.10.0'
+        command:  >
+             bash -c "
+             airflow db init &&
+             airflow webserver"
+        ports:
+            - '8085:8080'
+        networks:
+            - nifi-network
+        volumes:
+            - airflow-data:/usr/local/airflow/data
+            - ./airflow/logs:/usr/local/airflow/logs
+            - ./airflow/dags:/usr/local/airflow/dags
+            - ./airflow/requirements/requirements.txt:/requirements.txt
+            - ./airflow/airflow.cfg:/usr/local/airflow/airflow.cfg
+        environment:
+            - GUNICORN_CMD_ARGS=--log-level warning
+            - AIRFLOW__CORE__LOAD_EXAMPLES=False
+        restart: on-failure
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://nifi-airflow:8080/health"]
+            interval: 30s
+            timeout: 20s
+            retries: 3
+
+    # Zookeeper for NiFi
+    zookeeper:
+        hostname: nifi-zookeeper
+        container_name: zookeeper_container
+        image: 'bitnami/zookeeper:3.8.1'
+        environment:
+            - ALLOW_ANONYMOUS_LOGIN=yes
+        networks:
+            - nifi-network
+        restart: always
+
+    # NiFi service
+    nifi:
+        hostname: nifi
+        container_name: nifi_container
+        image: 'apache/nifi:latest'
+        ports:
+            - '8091:8080'
+            - '8443:8443'
+        networks:
+            - nifi-network
+        volumes:
+            - ./nifi/jdbc:/opt/nifi/nifi-current/jdbc
+            - ./nifi/credentials:/opt/nifi/nifi-current/credentials
+            - ./nifi/logback.xml:/opt/nifi/nifi-current/conf/logback.xml
+            - ./nifi/conf/nifi.authorizers.xml:/opt/nifi/nifi-current/conf/nifi.authorizers.xml
+            - ./nifi/conf/users.xml:/opt/nifi/nifi-current/conf/users.xml
+            - ./nifi/conf/authorizations.xml:/opt/nifi/nifi-current/conf/authorizations.xml
+            - ./nifi/conf/nifi-keystore.jks:/opt/nifi/nifi-current/conf/nifi-keystore.jks
+        environment:
+            - NIFI_WEB_HTTP_PORT=8080
+            - NIFI_CLUSTER_IS_NODE=true
+            - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
+            - NIFI_ZK_CONNECT_STRING=nifi-zookeeper:2181
+            - NIFI_ELECTION_MAX_WAIT=30s  # Fixed format for time units
+            - NIFI_SENSITIVE_PROPS_KEY='12345678901234567890A'
+            - NIFI_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL=60s  # Fixed format
+        restart: on-failure
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://nifi:8080/nifi/"]
+            interval: 30s
+            timeout: 20s
+            retries: 3
+
+    # NiFi Registry service
+    registry:
+        hostname: nifi-registry
+        container_name: registry_container
+        image: 'apache/nifi-registry:latest'
+        restart: on-failure
+        ports:
+            - "18080:18080"
+        environment:
+            - LOG_LEVEL=ERROR
+            - NIFI_REGISTRY_DB_DIR=/opt/nifi-registry/nifi-registry-current/database
+            - NIFI_REGISTRY_FLOW_PROVIDER=file
+            - NIFI_REGISTRY_FLOW_STORAGE_DIR=/opt/nifi-registry/nifi-registry-current/flow_storage
+        volumes:
+            - ./nifi_registry/database:/opt/nifi-registry/nifi-registry-current/database
+            - ./nifi_registry/flow_storage:/opt/nifi-registry/nifi-registry-current/flow_storage
+            - ./nifi/conf/nifi.properties:/opt/nifi/nifi-current/conf/nifi.properties
+            - ./nifi/conf/ogin-identity-providers.xml:/opt/nifi/nifi-current/conf/login-identity-providers.xml
+            - ./nifi/conf/nifi-keystore.jks:/opt/nifi/nifi-current/conf/nifi-keystore.jks
+        networks:
+            - nifi-network
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://nifi-registry:18080/nifi-registry/"]
+            interval: 30s
+            timeout: 20s
+            retries: 3
+
+    # PostgreSQL database
+    postgres:
+        hostname: postgres
+        container_name: postgres_container
+        image: 'postgres:16'
+        environment:
+            POSTGRES_USER: 'postgres'
+            POSTGRES_PASSWORD: 'postgres'
+            PGDATA: /data/postgres
+        volumes:
+            - postgres:/data/postgres
+        ports:
+            - "5433:5432"
+        networks:
+            - nifi-network
+        restart: on-failure
+
+    # # PgAdmin tool
+    # pgadmin:
+    #     hostname: mypgadmin
+    #     container_name: pgadmin_container
+    #     image: 'dpage/pgadmin4:6.16'  # Updated to the latest stable version
+    #     environment:
+    #         PGADMIN_DEFAULT_EMAIL: 'pgadmin4@pgadmin.org'
+    #         PGADMIN_DEFAULT_PASSWORD: 'admin'
+    #         PGADMIN_CONFIG_SERVER_MODE: 'False'
+    #     volumes:
+    #         - pgadmin:/var/lib/pgadmin
+    #         - ./pgadmin:/home
+    #     ports:
+    #         - "5050:80"
+    #     networks:
+    #         - nifi-network
+    #     restart: on-failure
+
+    # MinIO object storage service
+    minio:
+        hostname: nifi-minio
+        container_name: minio_container
+        image: 'bitnami/minio:2023'  # Use a specific image for stability
+        environment:
+            MINIO_ROOT_USER: minio_admin
+            MINIO_ROOT_PASSWORD: minio_password
+        ports:
+            - '9000:9000'
+            - '9001:9001'
+        volumes:
+            - './minio/data:/data'
+        networks:
+            - nifi-network
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://myminio:9000/minio/health/live"]
+            interval: 30s
+            timeout: 20s
+            retries: 3
+
+    # Portainer for managing Docker containers
+    portainer:
+        image: portainer/portainer-ce:latest
+        container_name: portainer
+        restart: unless-stopped
+        security_opt:
+            - no-new-privileges:true
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - portainer-data:/data
+        ports:
+            - 9009:9000
+
+volumes:
+    airflow-data:
+    postgres:
+    pgadmin:
+    portainer-data:
+
+networks:
+    nifi-network:
+        driver: bridge

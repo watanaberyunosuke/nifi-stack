@@ -1,0 +1,38 @@
+<configuration>
+    <property name="nifi.home" value="${sys:nifi.home}" />
+    <property name="log.dir" value="${nifi.home}/logs" />
+    <property name="appender.name" value="NiFiApp" />
+    <property name="appender.file" value="${log.dir}/nifi-app.log" />
+    <property name="appender.maxFileSize" value="100MB" />
+    <property name="appender.maxIndex" value="10" />
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${appender.file}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${appender.file}.%i</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>${appender.maxIndex}</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>${appender.maxFileSize}</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{ISO8601} %-5p [%t] %c: %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{ISO8601} %-5p [%t] %c: %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.apache.nifi" level="INFO" />
+    <logger name="org.apache.nifi.processors" level="DEBUG" />
+
+    <root level="INFO">
+        <appender-ref ref="FILE" />
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
+
