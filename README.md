@@ -153,16 +153,12 @@ Run `docker network inspect nifi-stack_nifi-network` to inspect the Docker netwo
 
 You can access container logs using:
 
-\`\`\`bash
+```bash
 docker logs <container_name>
-\`\`\`
+```
 
 For example, to see NiFi logs:
 
-\`\`\`bash
+```bash
 docker logs nifi_container
-\`\`\`
-
-## Contributing
-
-If you find any issues or have suggestions, feel free to open an issue or submit a pull request. Contributions are always welcome!
+```
