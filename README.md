@@ -52,22 +52,22 @@ To set up and run the stack:
 
 1. Clone the repository:
 
-   \`\`\`bash
+   ```bash
    git clone https://github.com/watanaberyunosuke/nifi-stack.git
    cd nifi-stack
-   \`\`\`
+   ```
 
 2. Build and start the Docker services:
 
-   \`\`\`bash
+   ```bash
    docker-compose -f nifi.yml up --build -d
-   \`\`\`
+   ```
 
 3. Verify that all services are running:
 
-   \`\`\`bash
+   ```bash
    docker ps
-   \`\`\`
+   ```
 
 ## Services
 
